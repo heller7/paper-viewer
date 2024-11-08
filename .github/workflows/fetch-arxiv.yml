@@ -1,0 +1,41 @@
+name: Daily arXiv Fetch
+
+on:
+  schedule:
+    - cron: '0 1 * * *'  # Runs at 1 AM UTC daily
+  workflow_dispatch:      # Allows manual trigger
+  push:
+    paths:
+      - 'app/scripts/fetchArxivDaily.ts'
+      - '.github/workflows/fetch-arxiv.yml'
+
+jobs:
+  fetch-arxiv:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Create data directory
+        run: mkdir -p data
+      
+      - name: Fetch arXiv Data
+        run: npx ts-node -r tsconfig-paths/register app/scripts/fetchArxivDaily.ts
+      
+      - name: Commit and push if changes exist
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/
+          git diff --staged --quiet || (git commit -m "Update arXiv data [skip ci]" && git push) 

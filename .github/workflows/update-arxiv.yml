@@ -1,0 +1,47 @@
+name: Update ArXiv Database
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at midnight
+  workflow_dispatch:      # Allows manual trigger
+
+jobs:
+  update-db:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      # Download previous database if it exists
+      - name: Download database artifact
+        id: download
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          name: arxiv-database
+          path: data
+          if_no_artifact_found: warn
+      
+      # Create data directory if it doesn't exist
+      - name: Create data directory
+        run: mkdir -p data
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run update script
+        run: npm run update
+        env:
+          ARXIV_DB_PATH: './data/arxiv.db'
+          
+      # Upload the updated database as an artifact
+      - name: Upload database artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: arxiv-database
+          path: data/arxiv.db
+          retention-days: 90  # Adjust as needed 
